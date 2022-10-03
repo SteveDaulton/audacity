@@ -491,8 +491,16 @@ time warp info and AudioIOListener and whether the playback is looped.
    #define ROUND(x) (int) ((x)+0.5)
    //#include <string.h>
 //   #include "../lib-src/portmidi/pm_common/portmidi.h"
-   #include "../lib-src/portaudio-v19/src/common/pa_util.h"
    #include "NoteTrack.h"
+#include <time.h>
+
+PaTime PaUtil_GetTime( void )
+{
+    struct timespec tp;
+    clock_gettime(CLOCK_REALTIME, &tp);
+    return (PaTime)(tp.tv_sec + tp.tv_nsec * 1e-9);
+}
+
 #endif
 
 #ifdef EXPERIMENTAL_AUTOMATED_INPUT_LEVEL_ADJUSTMENT

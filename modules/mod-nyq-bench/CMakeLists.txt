@@ -15,12 +15,10 @@ list( APPEND SOURCES
 )
 
 get_target_property( wx_INCLUDES wxWidgets INTERFACE_INCLUDE_DIRECTORIES )
-get_target_property( pa_INCLUDES portaudio-v19 INTERFACE_INCLUDE_DIRECTORIES )
 get_target_property( ny_INCLUDES libnyquist INTERFACE_INCLUDE_DIRECTORIES )
 list( APPEND INCLUDES
    PUBLIC
       ${wx_INCLUDES}
-      ${pa_INCLUDES}
       ${ny_INCLUDES}
       ${TARGET_ROOT}
 )

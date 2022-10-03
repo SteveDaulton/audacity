@@ -1183,6 +1183,9 @@ bool AudacityApp::OnInit()
    FileNames::AddUniquePathToPathList(wxString::Format(wxT("%s/.%s-files"),
       home, wxT(AUDACITY_NAME)),
       audacityPathList);
+   FileNames::AddUniquePathToPathList(wxString::Format(wxT("%s/lib/%s"),
+      wxT(INSTALL_PREFIX), wxT(AUDACITY_NAME)),
+      audacityPathList);
    FileNames::AddUniquePathToPathList(wxString::Format(wxT("%s/share/%s"),
       wxT(INSTALL_PREFIX), wxT(AUDACITY_NAME)),
       audacityPathList);
@@ -1193,6 +1196,9 @@ bool AudacityApp::OnInit()
    FileNames::AddUniquePathToPathList(wxString::Format(wxT("%s/.audacity-files"),
       home),
       audacityPathList)
+   FileNames::AddUniquePathToPathList(wxString::Format(wxT("%s/lib/audacity"),
+      wxT(INSTALL_PREFIX)),
+      audacityPathList);
    FileNames::AddUniquePathToPathList(wxString::Format(wxT("%s/share/audacity"),
       wxT(INSTALL_PREFIX)),
       audacityPathList);
@@ -1689,7 +1695,7 @@ bool AudacityApp::InitTempDir()
    // The permissions don't always seem to be set on
    // some platforms.  Hopefully this fixes it...
    #ifdef __UNIX__
-   chmod(OSFILENAME(temp), 0755);
+   chmod(OSFILENAME(temp), 0700);
    #endif
 
    bool bSuccess = gPrefs->Write(wxT("/Directories/TempDir"), temp) && gPrefs->Flush();

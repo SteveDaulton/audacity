@@ -132,14 +132,14 @@ addlib( expat              expat       EXPAT       YES   YES   "expat >= 2.1.0" 
 addlib( lame               lame        LAME        YES   YES   "lame >= 3.100" )
 addlib( libsndfile         sndfile     SNDFILE     YES   YES   "sndfile >= 1.0.28" )
 addlib( libsoxr            soxr        SOXR        YES   YES   "soxr >= 0.1.1" )
-addlib( portaudio-v19      portaudio   PORTAUDIO   YES   YES   "" )
+addlib( portaudio-v19      portaudio   PORTAUDIO   YES   YES   "portaudio-2.0" )
 
 # Optional libraries
 #
 #       directory          option      symbol      req   chk   version
 addlib( ffmpeg             ffmpeg      FFMPEG      NO    NO    "libavcodec >= 51.53" "libavformat >= 52.12" "libavutil >= 52.66" )
-addlib( libid3tag          id3tag      LIBID3TAG   NO    YES   "id3tag >= 0.15.1b" )
-addlib( libmad             mad         LIBMAD      NO    YES   "mad >= 0.15.1b" )
+addlib( libid3tag          id3tag      LIBID3TAG   NO    YES   "id3tag >= 0.15.0" )
+addlib( libmad             mad         LIBMAD      NO    YES   "mad >= 0.15.0" )
 addlib( libnyquist         nyquist     NYQUIST     NO    YES   "" )
 addlib( libvamp            vamp        VAMP        NO    YES   "vamp >= 2.5" "vamp-hostsdk >= 2.5" )
 addlib( libogg             ogg         LIBOGG      NO    YES   "ogg >= 1.3.1" )
