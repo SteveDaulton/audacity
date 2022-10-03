@@ -167,9 +167,10 @@ void DeviceToolBar::Populate()
 #endif
    Add(mOutput, 30, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 1);
 
-#if defined(__WXGTK3__)
-   // Nothing special
-#elif defined(__WXGTK__)
+// With wx3.0, scaling text looks better for GTK 2 and 3.
+// Note: wx3.2.1 supports ellipsization of long items for a better fit when
+// lengths vary a lot.
+#if defined(__WXGTK__)
    // Scale the font to fit inside (hopefully)
    wxFont font = mHost->GetFont();
    font.Scale((double) toolbarSingle / mHost->GetSize().GetHeight());
