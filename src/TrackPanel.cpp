@@ -283,8 +283,6 @@ TrackPanel::TrackPanel(wxWindow * parent, wxWindowID id,
          *this, std::move( pAx ) );
    }
 
-   mRedrawAfterStop = false;
-
    mTrackArtist = std::make_unique<TrackArtist>( this );
 
    mTimeCount = 0;
@@ -423,8 +421,6 @@ void TrackPanel::OnTimer(wxTimerEvent& )
    {
       projectAudioIO.SetAudioIOToken(0);
       window.RedrawProject();
-
-      mRedrawAfterStop = false;
    }
    if (mLastDrawnSelectedRegion != mViewInfo->selectedRegion) {
       UpdateSelectionDisplay();
@@ -443,19 +439,11 @@ void TrackPanel::OnTimer(wxTimerEvent& )
 
       // Periodically update the display while recording
 
-      if (!mRedrawAfterStop) {
-         mRedrawAfterStop = true;
-         MakeParentRedrawScrollbars();
-         mListener->TP_ScrollUpDown( 99999999 );
+      if ((mTimeCount % 5) == 0) {
+         // Must tell OnPaint() to recreate the backing bitmap
+         // since we've not done a full refresh.
+         mRefreshBacking = true;
          Refresh( false );
-      }
-      else {
-         if ((mTimeCount % 5) == 0) {
-            // Must tell OnPaint() to recreate the backing bitmap
-            // since we've not done a full refresh.
-            mRefreshBacking = true;
-            Refresh( false );
-         }
       }
    }
    if(mTimeCount > 1000)
