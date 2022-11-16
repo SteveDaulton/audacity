@@ -29,10 +29,10 @@
             register sample_type *yptr;\n")
 (INNER-LOOP "/* compute where to read y, we want y to be delay_snd samples
              * after delay_ptr, where we write the new sample. First, 
-             * conver from seconds to samples. Note: don't use actual sound_type
+             * convert from seconds to samples. Note: don't use actual sound_type
              * names in comments! The translator isn't smart enough.
              */
-            delaysamp = delaysnd * delay_scale_factor;
+            delaysamp = (sample_type) delaysnd * delay_scale_factor;
             delayi = (int) delaysamp; /* get integer part */
             delaysamp = delaysamp - delayi; /* get phase */
             yptr = delayptr + buflen - (delayi + 1);

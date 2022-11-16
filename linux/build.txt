@@ -1,81 +1,150 @@
 Instructions for Building on Linux
 
-Fuller instructions that cover:
-    * Upgrading to gcc 4.9 on older Ubuntus
-    * Optional libraries
-can be found on our wiki at http://wiki.audacityteam.org/wiki/Building_On_Linux.
+These instructions are written for Ubuntu 20.04 or later, but should also work
+for other Debian based distributions. Instructions for building on other distributions
+will be welcome at: https://github.com/SteveDaulton/audacity/pulls
 
-In fact for Audacity 2.4.0 you should read those
-instructions rather than these ones, since we switched to 
-CMake for building Audacity itself for 2.4.0
+Please note that this is an unofficial fork from the 2.x branch of Audacity.
+The official Audacity git repository is: https://github.com/audacity/audacity
 
-Some prerequisites:
+Prerequisites:
 
-- Audacity requires gcc 4.9 or later to build.
+The minimum version packages are available in Ubuntu 20.04 or later, and
+Debian 11 or later.
 
-- CMake ( http://www.cmake.org/ ) is required to build the local copy of 
-  the libsoxr resampling library used by Audacity.
+- Repository sources (sources.list) must include source code sources.
+- For MP3 / FFmpeg support, "non-free" repositories may need to be enabled.
+- Root access is required for installation (usually via "sudo").
+- gcc >= 4.9
+- cmake ( http://www.cmake.org/ ) >= 3.15
+- git
 
-On a modern Debian distro, e.g. Ubuntu 16.04 (bionic), you would do:
+On a modern Debian based distro, e.g. Ubuntu 20.04 (focal), you would do:
+    ~$ sudo apt-get install build-essential cmake git
 
-sudo apt-get install build-essential cmake
+For older distributions it may be necessary to build cmake from source (see
+separate notes on http://wiki.audacityteam.org/wiki/Building_On_Linux.
 
-- libasound and gtk are required. Having gtk2 and gtk3 too  
-  may not be required, but compilation works if both are.
 
-- Auto-tools are also needed.
+Dependencies:
+(The package names below are those used by Ubuntu 20.04.)
 
-sudo apt-get install libasound2-dev libgtk2.0-dev libgtk-3-dev
-sudo apt-get install autoconf automake
+For Debian / Ubuntu based distributions, these packages may be installed from
+the command line with:
+    ~$ sudo apt install <package-name>
+or for multiple packages:
+    ~$ sudo apt install <package-name> <package-name> ...
 
-- Since you will be fetching code from git repositories you 
-  will need git.
-
-sudo apt-get install git git-gui gitk
+- libgtk2.0-dev
+- libasound2-dev
+- python3-minimal
+- libavformat-dev
+- libjack-jackd2-dev
+- WxWidgets 3.1 built with gtk2. (see note below)
 
 
 wxWidgets:
 
- 1) Clone wxWidgets and checkout 3.1.3 from the Audacity fork of the 
-    wxWidgets project: 
-       https://github.com/audacity/wxWidgets/....
+https://github.com/SteveDaulton/wxWidgets/releases/tag/wx-aud-2.4.3 is
+recommended for (unofficial) Audacity 2.4.3, though it is possible* to use
+the default version for Ubuntu 20.04 / 22.04 (other versions are untested).
+WxWidgets should be built with gtk2 as gtk3 is not yet fully supported.
+*Note that there will be some minor display issues if WxWidgets 3.0 is used.
 
-    for example
-      mkdir ./wxWidgets
-      cd ./wxWidgets
-      git clone --recurse-submodules https://github.com/audacity/wxWidgets/
 
-    Don't be tempted to use Widgets already installed on Linux because this 
-    will typically be a different version and will cause problems.              
+1) Clone wxWidgets:
+    ~$ git clone --recurse-submodules https://github.com/audacity/wxWidgets/
 
-    IF you forgot the --recurse-submodules, you can correct that later by:
-      git submodule update --init
+If you forgot the --recurse-submodules, you can correct that later by:
+    ~$ git submodule update --init
 
-  2) Follow instructions for building at 
-    https://github.com/audacity/wxWidgets/blob/v3.1.3/docs/gtk/install.txt
 
-    So...
+2) Build and install wxWidgets:
 
-    mkdir buildgtk
-    cd buildgtk
-    ../configure --with-gtk
-    make    
+    ~$ cd <wxWidgets source code>
+    ~$ mkdir buildgtk
+    ~$ cd buildgtk
+    ~$ ../configure --with-cxx=14 --with-gtk=2
+    ~$ sudo make install
 
-  3) Having got this far, it is well worth trying out building some wxWidgets
-    examples to confirm that building has worked OK
+On a multi-core system, the build process can be made much quicker using the
+"-j" switch, set to the number of available cores. For example, with an 8 core
+processor:
+    ~$ sudo make -j8 install
+
+
+3) Having got this far, it is well worth trying out building some wxWidgets
+examples to confirm that building has worked OK.
+
 
 Audacity:
 
-These are old instructions.  See our wiki and use 
-CMake for 2.4.0 and later, rather than as here automake.
+Getting the Audacity source code:
 
-  1) Create a 'build' subdirectory under Audacity and change to it.
+The latest release version of Audacity is available from:
+https://www.fosshub.com/Audacity.html
+This is the recommended version for end users.
 
-  2) Now to build Audacity itself.  
-    Using a build directory (and .. in the command) keeps source and object files
-    in separate directories.
+For developers, the current development code is available from Github.
+Cloning the repository (https://github.com/audacity/audacity) is recommended so
+that the source tree may easily be kept up to date.
 
-    ../configure --with-lib-preference="local system"
 
-    make
-    make install  # as root
+Building Audacity
+
+As long as "/usr/local/bin" is in your PATH, then the wx-config should be found
+when you "cmake" Audacity.
+
+If the path to wxWidgets isn't in PATH, then add the option:
+-DwxWidgets_CONFIG_EXECUTABLE=<path to>/wx-config
+
+1. Make a build directory under the audacity git directory:
+    ~$ cd <audacity source code>
+    ~$ mkdir build
+    ~$ cd build
+
+2. Generate the makefiles:
+    ~$ cmake -DCMAKE_BUILD_TYPE=Release -Daudacity_use_ffmpeg=loaded ..
+
+3. Build Audacity:
+    ~$ make
+
+For multi-core processors, the "-j" switch may be used for faster building,
+for example, with a 4 core CPU:
+    ~$ make -j4
+
+4. Testing the build:
+Adding a "Portable Settings" folder allows Audacity to ignore the settings
+of any existing Audacity installation.
+
+    ~$ cd bin/Release
+    ~$ mkdir "Portable Settings"
+    ~$ ./audacity
+
+
+Installing Audacity
+
+    ~$ cd <build directory>
+    ~$ sudo make install
+
+
+Options:
+
+The options in the above example will produce a full release build, with FFmpeg
+enabled. A full list of option can be found here:
+https://wiki.audacityteam.org/wiki/CMake_Options#Linux
+or may be listed in the terminal by running:
+    ~$ cmake -LH
+
+
+Installing the manual:
+
+The Audacity manual is html, and is identical for Windows, Mac and Linux.
+The manual may be downloaded as a ZIP archive from:
+Current version: https://www.fosshub.com/Audacity.html
+Old versions: https://www.fosshub.com/Audacity-old.html
+
+Assuming that Audacity has been installed to /usr/local/ (default).
+From the directory containing the manual ZIP archive:
+
+   ~$ sudo unzip audacity-manual-2.4.2.zip -d /usr/local/share/audacity/help

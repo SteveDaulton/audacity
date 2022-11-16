@@ -51,7 +51,7 @@ extern char buf[];
 extern FILE *tfp;
 
 /* external routines */
-extern FILE *osaopen();
+extern FILE *osaopen(const char *name, const char *mode);
 
 #ifdef USE_RANDOM
 
@@ -86,7 +86,7 @@ long xlrand (long range) {
 }
 
 long xlsrand(long seed) {
-    srand(seed);
+    srand((unsigned int) seed);
     return seed;
 }
 
@@ -227,9 +227,10 @@ void xlisp_main()
     in_a_context = TRUE;
 
     /* target for restore */
-    if (_setjmp(top_level))
+    if (_setjmp(top_level)) {
         xlbegin(&cntxt,CF_TOPLEVEL|CF_CLEANUP|CF_BRKLEVEL,s_true);
-
+    }
+    
     /* protect some pointers */
     xlsave1(expr);
 

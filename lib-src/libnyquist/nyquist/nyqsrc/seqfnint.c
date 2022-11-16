@@ -18,7 +18,6 @@ extern LVAL s_true;
 
 extern LVAL RSLT_sym;
 
-
 #include "seqdecls.h"
 
 #include "seqext.h"
@@ -33,78 +32,6 @@ LVAL xlc_seq_reset(void)
 
     xllastarg();
     seq_reset(arg1);
-    return NIL;
-}
-
-
-/* xlc_seq_insert_ctrl -- interface to C routine insert_ctrl */
-/**/
-LVAL xlc_seq_insert_ctrl(void)
-{
-    seq_type arg1 = getseq(xlgaseq());
-    long arg2 = getfixnum(xlgafixnum());
-    long arg3 = getfixnum(xlgafixnum());
-    long arg4 = getfixnum(xlgafixnum());
-    long arg5 = getfixnum(xlgafixnum());
-    long arg6 = getfixnum(xlgafixnum());
-
-    xllastarg();
-    insert_ctrl(arg1, arg2, arg3, arg4, arg5, arg6);
-    return NIL;
-}
-
-
-/* xlc_seq_insert_ramp -- interface to C routine insert_ctrlramp */
-/**/
-LVAL xlc_seq_insert_ramp(void)
-{
-    seq_type arg1 = getseq(xlgaseq());
-    long arg2 = getfixnum(xlgafixnum());
-    long arg3 = getfixnum(xlgafixnum());
-    long arg4 = getfixnum(xlgafixnum());
-    long arg5 = getfixnum(xlgafixnum());
-    long arg6 = getfixnum(xlgafixnum());
-    long arg7 = getfixnum(xlgafixnum());
-    long arg8 = getfixnum(xlgafixnum());
-    long arg9 = getfixnum(xlgafixnum());
-
-    xllastarg();
-    insert_ctrlramp(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
-    return NIL;
-}
-
-
-/* xlc_seq_insert_macctrl -- interface to C routine insert_macctrl */
-/**/
-LVAL xlc_seq_insert_macctrl(void)
-{
-    seq_type arg1 = getseq(xlgaseq());
-    long arg2 = getfixnum(xlgafixnum());
-    long arg3 = getfixnum(xlgafixnum());
-    long arg4 = getfixnum(xlgafixnum());
-    long arg5 = getfixnum(xlgafixnum());
-    long arg6 = getfixnum(xlgafixnum());
-
-    xllastarg();
-    insert_macctrl(arg1, arg2, arg3, arg4, arg5, arg6);
-    return NIL;
-}
-
-
-/* xlc_seq_insert_note -- interface to C routine insert_note */
-/**/
-LVAL xlc_seq_insert_note(void)
-{
-    seq_type arg1 = getseq(xlgaseq());
-    long arg2 = getfixnum(xlgafixnum());
-    long arg3 = getfixnum(xlgafixnum());
-    long arg4 = getfixnum(xlgafixnum());
-    long arg5 = getfixnum(xlgafixnum());
-    long arg6 = getfixnum(xlgafixnum());
-    long arg7 = getfixnum(xlgafixnum());
-
-    xllastarg();
-    insert_note(arg1, arg2, arg3, arg4, arg5, arg6, arg7);
     return NIL;
 }
 
@@ -154,13 +81,13 @@ LVAL xlc_seq_next(void)
 LVAL xlc_seq_get(void)
 {
     seq_type arg1 = getseq(xlgaseq());
-    long arg2 = 0;
-    long arg3 = 0;
-    long arg4 = 0;
-    long arg5 = 0;
-    long arg6 = 0;
-    long arg7 = 0;
-    long arg8 = 0;
+    long arg2 = (long) 0;
+    long arg3 = (long) 0;
+    long arg4 = (long) 0;
+    long arg5 = (long) 0;
+    long arg6 = (long) 0;
+    long arg7 = (long) 0;
+    long arg8 = (long) 0;
     LVAL result;
 
     xllastarg();
@@ -186,7 +113,41 @@ LVAL xlc_seq_get(void)
 }
 
 
-#include "seqmwrite.h"
+/* xlc_seq_insert_note -- interface to C routine seq_insert_note */
+/**/
+LVAL xlc_seq_insert_note(void)
+{
+    seq_type arg1 = getseq(xlgaseq());
+    long arg2 = (long) getfixnum(xlgafixnum());
+    long arg3 = (long) getfixnum(xlgafixnum());
+    long arg4 = (long) getfixnum(xlgafixnum());
+    long arg5 = (long) getfixnum(xlgafixnum());
+    long arg6 = (long) getfixnum(xlgafixnum());
+    long arg7 = (long) getfixnum(xlgafixnum());
+
+    xllastarg();
+    seq_insert_note(arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+    return NIL;
+}
+
+
+/* xlc_seq_insert_ctrl -- interface to C routine seq_insert_ctrl */
+/**/
+LVAL xlc_seq_insert_ctrl(void)
+{
+    seq_type arg1 = getseq(xlgaseq());
+    long arg2 = (long) getfixnum(xlgafixnum());
+    long arg3 = (long) getfixnum(xlgafixnum());
+    long arg4 = (long) getfixnum(xlgafixnum());
+    long arg5 = (long) getfixnum(xlgafixnum());
+    long arg6 = (long) getfixnum(xlgafixnum());
+    long arg7 = (long) getfixnum(xlgafixnum());
+
+    xllastarg();
+    seq_insert_ctrl(arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+    return NIL;
+}
+
 
 /* xlc_seq_write_smf -- interface to C routine seq_xlwrite_smf */
 /**/
@@ -215,6 +176,8 @@ LVAL xlc_seq_read_smf(void)
     return NIL;
 }
 
+
+#include "seqmwrite.h"
 
 #include "seqread.h"
 
