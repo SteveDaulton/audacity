@@ -77,20 +77,20 @@ import errno
 import argparse
 
 
-if sys.version_info[0] < 3 and sys.version_info[1] < 7:
-    sys.exit('PipeClient Error: Python 2.7 or later required')
+if sys.version_info[0] < 3:
+    sys.exit('PipeClient Error: Python 3.x required')
 
 # Platform specific constants
 if sys.platform == 'win32':
-    WRITE_NAME = '\\\\.\\pipe\\ToSrvPipe'
-    READ_NAME = '\\\\.\\pipe\\FromSrvPipe'
-    EOL = '\r\n\0'
+    WRITE_NAME: str = '\\\\.\\pipe\\ToSrvPipe'
+    READ_NAME: str = '\\\\.\\pipe\\FromSrvPipe'
+    EOL: str = '\r\n\0'
 else:
     # Linux or Mac
-    PIPE_BASE = '/tmp/audacity_script_pipe.'
-    WRITE_NAME = PIPE_BASE + 'to.' + str(os.getuid())
-    READ_NAME = PIPE_BASE + 'from.' + str(os.getuid())
-    EOL = '\n'
+    PIPE_BASE: str = '/tmp/audacity_script_pipe.'
+    WRITE_NAME: str = PIPE_BASE + 'to.' + str(os.getuid())
+    READ_NAME: str = PIPE_BASE + 'from.' + str(os.getuid())
+    EOL: str = '\n'
 
 
 class PipeClient():
@@ -127,7 +127,7 @@ class PipeClient():
     reader_pipe_broken = threading.Event()
     reply_ready = threading.Event()
 
-    _shared_state = {}
+    _shared_state: dict = {}
 
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
@@ -135,15 +135,15 @@ class PipeClient():
         return self
 
     def __init__(self):
-        self.timer = False
-        self._start_time = 0
+        self.timer: bool = False
+        self._start_time: float = 0
         self._write_pipe = None
-        self.reply = ''
+        self.reply: str = ''
         if not self._write_pipe:
             self._write_thread_start()
         self._read_thread_start()
 
-    def _write_thread_start(self):
+    def _write_thread_start(self) -> None:
         """Start _write_pipe thread"""
         # Pipe is opened in a new thread so that we don't
         # freeze if Audacity is not running.
@@ -155,17 +155,17 @@ class PipeClient():
         if not self._write_pipe:
             sys.exit('PipeClientError: Write pipe cannot be opened.')
 
-    def _write_pipe_open(self):
+    def _write_pipe_open(self) -> None:
         """Open _write_pipe."""
-        self._write_pipe = open(WRITE_NAME, 'w')
+        self._write_pipe = open(WRITE_NAME, 'w', encoding='ascii')
 
-    def _read_thread_start(self):
+    def _read_thread_start(self) -> None:
         """Start read_pipe thread."""
         read_thread = threading.Thread(target=self._reader)
         read_thread.daemon = True
         read_thread.start()
 
-    def write(self, command, timer=False):
+    def write(self, command, timer=False) -> None:
         """Write a command to _write_pipe.
 
         Parameters
@@ -184,7 +184,7 @@ class PipeClient():
         print('Sending command:', command)
         self._write_pipe.write(command + EOL)
         # Check that read pipe is alive
-        if PipeClient.reader_pipe_broken.isSet():
+        if PipeClient.reader_pipe_broken.is_set():
             sys.exit('PipeClient: Read-pipe error.')
         try:
             self._write_pipe.flush()
@@ -198,34 +198,33 @@ class PipeClient():
             else:
                 raise
 
-    def _reader(self):
+    def _reader(self) -> None:
         """Read FIFO in worker thread."""
         # Thread will wait at this read until it connects.
         # Connection should occur as soon as _write_pipe has connected.
-        read_pipe = open(READ_NAME, 'r')
-        message = ''
-        pipe_ok = True
-        while pipe_ok:
-            line = read_pipe.readline()
-            # Stop timer as soon as we get first line of response.
-            stop_time = time.time()
-            while pipe_ok and line != '\n':
-                message += line
-                line = read_pipe.readline()
-                if line == '':
-                    # No data in read_pipe indicates that the pipe is broken
-                    # (Audacity may have crashed).
-                    PipeClient.reader_pipe_broken.set()
-                    pipe_ok = False
-            if self.timer:
-                xtime = (stop_time - self._start_time) * 1000
-                message += 'Execution time: {0:.2f}ms'.format(xtime)
-            self.reply = message
-            PipeClient.reply_ready.set()
+        with open(READ_NAME, 'r', encoding='ascii') as read_pipe:
             message = ''
-        read_pipe.close()
+            pipe_ok = True
+            while pipe_ok:
+                line = read_pipe.readline()
+                # Stop timer as soon as we get first line of response.
+                stop_time = time.time()
+                while pipe_ok and line != '\n':
+                    message += line
+                    line = read_pipe.readline()
+                    if line == '':
+                        # No data in read_pipe indicates that the pipe
+                        # is broken (Audacity may have crashed).
+                        PipeClient.reader_pipe_broken.set()
+                        pipe_ok = False
+                if self.timer:
+                    xtime = (stop_time - self._start_time) * 1000
+                    message += f'Execution time: {xtime:.2f}ms'
+                self.reply = message
+                PipeClient.reply_ready.set()
+                message = ''
 
-    def read(self):
+    def read(self) -> str:
         """Read Audacity's reply from pipe.
 
         Returns
@@ -236,12 +235,12 @@ class PipeClient():
             is still processing the last command.
 
         """
-        if not PipeClient.reply_ready.isSet():
+        if not PipeClient.reply_ready.is_set():
             return ''
         return self.reply
 
 
-def bool_from_string(strval):
+def bool_from_string(strval) -> bool:
     """Return boolean value from string"""
     if strval.lower() in ('true', 't', '1', 'yes', 'y'):
         return True
@@ -250,7 +249,7 @@ def bool_from_string(strval):
     raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-def main():
+def main() -> None:
     """Interactive command-line for PipeClient"""
 
     parser = argparse.ArgumentParser()
@@ -268,14 +267,10 @@ def main():
         print(__doc__)
         sys.exit(0)
 
-    client = PipeClient()
+    client: PipeClient = PipeClient()
     while True:
-        reply = ''
-        if sys.version_info[0] < 3:
-            message = input("\nEnter command or 'Q' to quit: ")
-        else:
-            message = input(
-                "\nEnter command or 'Q' to quit: ")
+        reply: str = ''
+        message: str = input("\nEnter command or 'Q' to quit: ")
         start = time.time()
         if message.upper() == 'Q':
             sys.exit(0)
