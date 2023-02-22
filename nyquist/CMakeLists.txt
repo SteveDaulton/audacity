@@ -26,7 +26,6 @@ list( APPEND RUNTIME
    sal.lsp
    seq.lsp
    seqfnint.lsp
-   seqmidi.lsp
    sliders.lsp
    sndfnint.lsp
    spec-plot.lsp
@@ -37,6 +36,7 @@ list( APPEND RUNTIME
    velocity.lsp
    xlinit.lsp
    xm.lsp
+   xmseq.lsp
    rawwaves/mand1.raw
    rawwaves/mand10.raw
    rawwaves/mand11.raw

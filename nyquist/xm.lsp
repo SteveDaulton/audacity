@@ -590,7 +590,7 @@ period may be a mix of elements from the more deeply nested patterns.
 
 
 (send cycle-class :answer :start-period '(forcount)
-  '((xm-traceif "cycle-class :start-period" "lis-pattern" 
+  '((xm-traceif "cycle-class :start-period" name "lis-pattern" 
                 (get-pattern-name lis-pattern) "lis" lis "count" count
                 "length-pattern" (get-pattern-name length-pattern))
     (cond (lis-pattern
@@ -638,7 +638,9 @@ period may be a mix of elements from the more deeply nested patterns.
 
 
 (send line-class :answer :start-period '(forcount)
-  '((cond (lis-pattern
+  '((xm-traceif "line-class :start-period" name "count" count "len" len 
+                "lis" lis "lis-pattern" (get-pattern-name lis-pattern))
+    (cond (lis-pattern
            (send self :set-list (next lis-pattern t) trace)
            (setf cursor lis)))
     (if (null count)
@@ -1523,7 +1525,6 @@ pattern argument (by default).
 
 (defun markov-find-rule (rules state)
   (dolist (rule rules)
-    (xm-traceif "markov find-rule" name "rule" rule)
     (cond ((markov-rule-match rule state)
            (return rule)))))
 
@@ -1847,7 +1848,7 @@ pattern argument (by default).
     (expr-set-attr (event-expression event) attr value)))
 
 
-;; EVENT-REMOVE-ATTR -- new event without atttribute value pair
+;; EVENT-REMOVE-ATTR -- new event without attribute value pair
 (defun event-remove-attr (event attr)
   (event-set-expression
      event
@@ -1888,10 +1889,19 @@ pattern argument (by default).
 
 ;; FIND-FIRST-NOTE -- use keywords to find index of first selected note
 ;;
+;; negative indexes are relative to the end, e.g., -1 is last note
+;;
 (defun find-first-note (score from-index from-time)
   (let ((s (cdr score)))
-    ;; offset by one because we removed element 0
-    (setf from-index (if from-index (max 0 (- from-index 1)) 0))
+    (cond (from-index
+           (if (minusp from-index)  
+               (setf from-index (+ (length score) from-index)))
+           ;; offset by one because we removed element 0, and
+           ;; ignore resulting index values less than zero
+           (setf from-index (max 0 (1- from-index))))
+          (t ;; no from-index specified, all notes are included, start at 0:
+           (setf from-index 0)))
+
     (setf from-time (if from-time 
                         (- from-time SCORE-EPSILON)
                         (- SCORE-EPSILON)))
@@ -1900,7 +1910,7 @@ pattern argument (by default).
     (while (and s (>= from-time (event-time (car s))))
       (setf s (cdr s))
       (incf from-index))
-    (1+ from-index)))
+    (1+ from-index))) ;; result counts SCORE-BEGIN-END
 
 
 ;; EVENT-BEFORE -- useful function for sorting scores
@@ -2017,6 +2027,8 @@ pattern argument (by default).
 
 ;; FIND-LAST-NOTE -- use keywords to find index beyond last selected note
 ;;
+;; negative indexes are relative to the end, e.g., -1 is last note
+;;
 ;; note that the :to-index keyword is the index of the last note (numbered
 ;; from zero), whereas this function returns the index of the last note
 ;; plus one, i.e. selected notes have an index *less than* this one
@@ -2025,12 +2037,18 @@ pattern argument (by default).
   ;; skip past score-begin-end event
   (let ((s (cdr score))
         (n 1))
-    (setf to-index (if to-index (1+ to-index) (length score)))
+    (cond (to-index
+           (if (minusp to-index)
+               ;; if negative, add length of score, so -1 => scorelen-1,
+               ;; which is the index of the last event
+               (setf to-index (+ (length score) to-index))))
+          (t ;; default is everything: len(s) == len(score)-1
+           (setf to-index (length s))))
     (setf to-time (if to-time (- to-time SCORE-EPSILON)  FOREVER))
     (while (and s (< n to-index) (< (event-time (car s)) to-time))
       (setf s (cdr s))
       (incf n))
-    n))
+    (1+ n))) ;; return index of last note + 1
 
 
 ;; SCORE-MUST-HAVE-BEGIN-END -- add score-begin-end event if necessary
@@ -2192,7 +2210,8 @@ pattern argument (by default).
 (defun score-sustain (score factor &key
                       from-index to-index from-time to-time)
   (setf score (score-must-have-begin-end score))
-  (let ((i 0)
+  (let ((i 0)  ;; note that we process event 0 (SCORE-BEGIN-END) but
+        ;; it has duration 0 so nothing changes for that event.
         (start (find-first-note score from-index from-time))
         (stop (find-last-note score to-index to-time))
         result)
@@ -2238,7 +2257,7 @@ pattern argument (by default).
                     from-index to-index from-time to-time)
   (ny:assert-replacement-list 'SCORE-VOICE 2 "replacement-list" replacement-list)
   (setf score (score-must-have-begin-end score))
-  (let ((i 0) 
+  (let ((i 0) ;; start from zero because we include SCORE-BEGIN-END in score
         (start (find-first-note score from-index from-time))
         (stop (find-last-note score to-index to-time))
         result)
@@ -2329,13 +2348,14 @@ pattern argument (by default).
 
 
 (defun score-select (score predicate &key
-                    from-index to-index from-time to-time reject)
+                    from-index to-index from-time to-time reject extract)
   (setf score (score-must-have-begin-end score))
-  (let ((begin-end (car score))
+  (let ((begin (score-get-begin score))
+        (end (score-get-end score))
         (i 1) 
         (start (find-first-note score from-index from-time))
         (stop (find-last-note score to-index to-time))
-        result)
+        result result-last)
     ;; selected if start <= i AND i < stop AND predicate(...)
     ;; choose if not reject and selected or reject and not selected
     ;; so in other words choose if reject != selected. Use NULL to
@@ -2350,7 +2370,16 @@ pattern argument (by default).
                                       (event-expression event)))))))
              (push event result)))
       (incf i))
-    (cons begin-end (reverse result))))
+    (setf result-last (car result)) ;; the last event if any
+    (setf result (reverse result))
+    (cond ((and extract (not reject))
+           (cond (from-time (setf begin from-time))
+                 (result (setf begin (event-time (car result)))))
+           (cond (to-time (setf end to-time))
+                 (result-last (setf end (event-end result-last)))
+                 (t (setf end begin)))))
+    (cons (list 0 1 (list 'SCORE-BEGIN-END begin end))
+          result)))
 
 
 ;; SCORE-FILTER-LENGTH -- remove notes beyond cutoff time
@@ -2561,38 +2590,8 @@ pattern argument (by default).
   ;; return the list
   lis)
 
-
-(defun score-from-seq (seq)
-  (prog (event tag score programs)
-    (seq-reset seq)
-loop
-    (setf event (seq-get seq))
-    (setf tag (seq-tag event))
-    (cond ((= tag seq-done-tag)
-           (go exit))
-          ((= tag seq-prgm-tag)
-           (let ((chan (seq-channel event))
-                 (when (seq-time event))
-                 (program (seq-program event)))
-             (setf programs (set-program-to programs chan program 0))
-             (push (list (* when 0.001) 1
-                         (list 'NOTE :pitch nil :program program))
-                   score)))
-          ((= tag seq-note-tag)
-         (let ((chan (seq-channel event))
-                 (pitch (seq-pitch event))
-                 (vel (seq-velocity event))
-                 (when (seq-time event))
-                 (dur (seq-duration event)))
-             (push (list (* when 0.001) (* dur 0.001)
-                       (list 'NOTE :chan (1- chan) :pitch pitch :vel vel))
-                   score))))
-    (seq-next seq)
-    (go loop)
-exit
-    (setf *rslt* programs) ;; extra return value
-    (return (score-sort score))))
-
+;; score-from-seq: see xmseq.lsp
+(autoload "xmseq.lsp" 'score-from-seq)
 
 (defun score-write (score filename &optional programs absolute)
   (score-write-smf score filename programs t absolute))
@@ -2601,12 +2600,10 @@ exit
   (let ((file (if as-adagio (open filename :direction :output)
                             (open-binary filename :direction :output)))
         (seq (seq-create))
-        (chan 1))
+        (chan 0))
     (cond (file
            (dolist (program programs)
-             ;; 6 = SEQ_PROGRAM
-             (seq-insert-ctrl seq 0 0 6 chan program)
-             ;(display "insert ctrl" seq 0 0 6 chan program)
+             (seq-insert-ctrl seq 0 0 seq-prgm-tag chan 0 program)
              (incf chan))
 
            (dolist (event (cdr (score-must-have-begin-end score)))
@@ -2619,16 +2616,16 @@ exit
                (cond (program
                       ;(display "score-write-smf program" chan program)
                       (seq-insert-ctrl seq (round (* time 1000))
-                                       0 6 (1+ chan)
+                                       0 6 chan
                                        (round program))))
                (cond ((consp pitch)
                       (dolist (p pitch)
                         (seq-insert-note seq (round (* time 1000))
-                                         0 (1+ chan) (round p) 
+                                         0 chan (round p) 
                                          (round (* dur 1000)) (round vel))))
                      (pitch
                       (seq-insert-note seq (round (* time 1000))
-                                       0 (1+ chan) (round pitch)
+                                       0 chan (round pitch)
                                        (round (* dur 1000)) (round vel))))))
            (cond (as-adagio
                   (seq-write seq file absolute)

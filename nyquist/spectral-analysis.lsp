@@ -67,6 +67,12 @@
 ;; from a frame returned by sa-frame.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; set mag = sa-normalize(frame [, max])
+;;
+;; sa-normalize copies frame and scales the values so that
+;; the peak value is max (or 1.0 if max is omitted).
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; exec sa-plot(sa-obj, sa-frame)
 ;;
 ;; sa-plot plots the amplitude (magnitude) spectrum of sa-frame.
@@ -76,6 +82,17 @@
 ;; sa-frame is a spectral frame (array) returned by sa-next()
 ;;
 ;; Return value is nil, but a plot is generated and displayed.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; exec sa-print(file, sa-obj, frame [, cutoff: cutoff] [,
+;;               threshold: threshold])
+;;
+;; sa-print prints an ASCII plot of the magnitude spectrum
+;; frame to file. The file parameter can be T to print to
+;; the console. If cutoff is provided, only the spectrum
+;; below cutoff (Hz) will be printed. If threshold is
+;; provided, the output may elide bins with values below
+;; the threshold.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; set hz = sa-get-bin-width(sa-obj)
@@ -93,7 +110,7 @@
 ;;       the i'th bin is i * hz.
 ;;   n - the size of the FFT, an integer, a power of two. The
 ;;       size of a spectral frame (an array returned by sa-next)
-;;       is (n / 2) + 1.
+;;       is n and the size of the magnitude spectrum is (n / 2) + 1.
 ;;   secs - the duration of an FFT window.
 ;;   window - the type of window used (:hann, :hamming, :none)
 ;;   skip-period - the time in seconds of the skip (the time
@@ -102,6 +119,8 @@
 ;;   sr - the sample rate of the sound being analyzed (in Hz, a flonum)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(if (fboundp 'array-scale) nil ;; already loaded
+    (load "spectrum.lsp"))
 
 ;; define the class of spectral analysis objects
 (setf sa-class (send class :new '(sound length skip window window-type)))
@@ -135,7 +154,7 @@
     (:hann        (hann-window len))
     (:none        nil)
     (:hamming     (hamming-window len))
-    (t (print "Warning: invalid window-type paramter: ~A~%" win-type)
+    (t (print "Warning: invalid window-type parameter: ~A~%" win-type)
        (print "    Using :HAMMING instead.~%")
        (hamming-window len))))
   
@@ -213,6 +232,60 @@
 (defun sa-plot (sa-obj frame)
   (send sa-obj :plot frame))
 
+
+(defun sa-compute-next-to-print (frame i threshold last-bin)
+  ;; look beyond i and see if we should skip some lines
+  (cond ((or (< (aref frame i) threshold)
+             (>= i last-bin))
+         (prog ((j (1+ i)))
+           loop
+           (cond ((>= j (length frame)) (go done))
+                 ((or (< (aref frame j) threshold)
+                      (>= j last-bin))
+                  (setf j (1+ j))
+                  (go loop)))
+           done
+           ;; now i is potentially the beginning of a run
+           ;; and j is potentially sa-end-skip (> threshold)
+           ;; we only skip if the run is longer than 3, so
+           ;; j - i > 3:
+           (cond ((> (- j i) 3)
+                  ;; recall that sa-start-skip is the 2nd bin of the run:
+                  (setf sa-start-skip (1+ i))
+                  (setf sa-end-skip j)))))))
+
+
+(defun sa-print (file sa-obj frame &key (cutoff nil) (threshold nil))
+  (format file "~A~%" "  BIN    FREQ   MAG")
+  ;; algorithm: sa-start-skip is first line to skip, print "-------" here
+  ;;   sa-end-skip is one beyond last line to skip, print this one and beyond
+  ;;   when beyond, call sa-compute-next-to-print to search ahead for new
+  ;;   bins to skip and set sa-start-skip, sa-end-skip. These are globals.
+  (setf sa-start-skip -10 sa-end-skip -10)
+  (let ((last-bin (if cutoff
+                      (truncate (* (length frame) 2.0
+                                   (/ cutoff
+                                      (float (sa-get-sample-rate sa-obj)))))
+                    (length frame))))
+    (setf last-bin (min (length frame) last-bin)) ;; because it stops the loop
+                                                  ;; in sa-compute-next-to-print
+    (progv '(*float-format* *integer-format*) '("%7.1f" "%5d")
+      (dotimes (i (length frame))
+        (cond ((and (> i sa-start-skip) (< i sa-end-skip))
+               nil) ;; skip the bin
+              ((= i sa-start-skip)
+               (format file "--------------------~%"))
+              (t
+               (sa-compute-next-to-print frame i threshold last-bin)
+               (setf *float-format* "%7.1f")
+               (format file "~A ~A " i (* i (sa-get-bin-width sa-obj)))
+               (setf *float-format* "%5.3f")
+               (format file "~A: " (aref frame i))
+               (dotimes (j (round (* 50 (aref frame i))))
+                 (format file "*"))
+               (format file "~%")))))))
+
+
 (defun sa-magnitude(frame)
   (let* ((flen (length frame))
          (n (/ (length frame) 2)) ; size of amplitude spectrum - 1
@@ -231,7 +304,44 @@
         (setf (aref as (1+ i)) amp)))
     (setf (aref as n) (aref frame (1- flen)))
     as)) ;; return the amplitude spectrum
-  
+
+
+
+
+(defun sa-normalize (frame &optional (max 1.0))
+  (let ((peak 0.0))
+    (dotimes (i (length frame))
+      (setf peak (max (aref frame i) peak)))
+    (setf frame (array-copy frame))
+    (if (> peak 0)
+        (array-scale frame (/ max peak)))
+    frame))
+
+
+(defun array-copy (frame)
+  (let* ((len (length frame))
+         (copy (make-array len)))
+    (dotimes (i len)
+      (setf (aref copy i) (aref frame i)))
+    copy))
+
+(defun amplitude-normalize (frame &optional (max 1.0))
+  (let ((peak 0.0))
+    (dotimes (i (length frame))
+      (setf peak (max (aref frame i) peak)))
+    (setf frame (array-copy frame))
+    (if (> peak 0)
+        (array-scale frame (/ max peak)))
+    frame))
+
+
+(defun array-copy (frame)
+  (let* ((len (length frame))
+         (copy (make-array len)))
+    (dotimes (i len)
+      (setf (aref copy i) (aref frame i)))
+    copy))
+
 
 (send sa-class :answer :plot '(frame) '(
   (let* ((as (sa-magnitude frame))
