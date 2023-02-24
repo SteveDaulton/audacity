@@ -534,10 +534,10 @@ namespace {
 
 bool EffectNoiseReduction::Settings::PrefsIO(bool read)
 {
-   static const double DEFAULT_OLD_SENSITIVITY = 0.0;
+   static const double DEFAULT_OLD_SENSITIVITY = 0.01;
 
    static const PrefsTableEntry<Settings, double> doubleTable[] = {
-         { &Settings::mNewSensitivity, wxT("Sensitivity"), 6.0 },
+         { &Settings::mNewSensitivity, wxT("Sensitivity"), 3.0 },
          { &Settings::mNoiseGain, wxT("Gain"), 12.0 },
          { &Settings::mAttackTime, wxT("AttackTime"), 0.02 },
          { &Settings::mReleaseTime, wxT("ReleaseTime"), 0.10 },
@@ -1489,7 +1489,7 @@ const ControlInfo *controlInfo() {
          0.0, 48.0, 48, wxT("%d"), true,
          XXO("&Noise reduction (dB):"), XO("Noise reduction")),
          ControlInfo(&EffectNoiseReduction::Settings::mNewSensitivity,
-         0.0, 24.0, 48, wxT("%.2f"), false,
+         0.01, 24.0, 48, wxT("%.2f"), false,
          XXO("&Sensitivity:"), XO("Sensitivity")),
 #ifdef ATTACK_AND_RELEASE
          ControlInfo(&EffectNoiseReduction::Settings::mAttackTime,
