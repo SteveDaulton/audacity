@@ -534,7 +534,7 @@ namespace {
 
 bool EffectNoiseReduction::Settings::PrefsIO(bool read)
 {
-   static const double DEFAULT_OLD_SENSITIVITY = 0.01;
+   static const double DEFAULT_OLD_SENSITIVITY = 0.0;
 
    static const PrefsTableEntry<Settings, double> doubleTable[] = {
          { &Settings::mNewSensitivity, wxT("Sensitivity"), 3.0 },
