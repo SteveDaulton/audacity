@@ -180,7 +180,7 @@ sampleDisplaySetting{
       { wxT("ConnectDots"), XO("Connect dots") },
       { wxT("StemPlot"), XO("Stem plot") }
    },
-   1, // StemPlot
+   0, // ConnectDots
 
    // for migrating old preferences:
    {

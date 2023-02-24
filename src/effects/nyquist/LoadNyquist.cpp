@@ -41,6 +41,7 @@ const static wxChar *kShippedEffects[] =
    wxT("rissetdrum.ny"),
    wxT("sample-data-export.ny"),
    wxT("sample-data-import.ny"),
+   wxT("ShelfFilter.ny"),
    wxT("SilenceMarker.ny"),
    wxT("SoundFinder.ny"),
    wxT("spectral-delete.ny"),
