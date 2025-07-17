@@ -23,6 +23,7 @@ env:
 
 jobs:
   au4_build_windows:
+    if: github.repository == 'audacity/audacity'
     runs-on: windows-2022
     steps:
     - name: Clone repository
